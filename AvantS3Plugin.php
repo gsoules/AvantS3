@@ -2,7 +2,7 @@
 
 define('AVANTS3_DIR',dirname(__FILE__));
 
-require_once AVANTS3_DIR.'/helpers/DropboxFunctions.php';
+require_once AVANTS3_DIR . '/helpers/S3Functions.php';
 
 class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
 {
@@ -22,11 +22,13 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
         $item = $args['record'];
         $post = $args['post'];
     
-        if (!($post && isset($post['dropbox-files']))) {
+        if (!($post && isset($post['s3-files'])))
+        {
             return;
         }
         
-        $fileNames = $post['dropbox-files'];
+        $fileNames = $post['s3-files'];
+
         if ($fileNames)
         {
             if (!canAccessS3StagingFolder())
@@ -48,7 +50,7 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
             catch (Omeka_File_Ingest_InvalidException $e)
             {
                 release_object($files);
-                $item->addError('Dropbox', $e->getMessage());
+                $item->addError('AvantS3', $e->getMessage());
                 return;
             }
             catch (Exception $e)

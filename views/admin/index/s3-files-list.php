@@ -20,7 +20,7 @@
                     selectAllCheckboxes(this.checked);
                 });
 
-                jQuery('.dropbox-js').show();
+                jQuery('.s3-header').show();
             });
         </script>
 
@@ -31,13 +31,13 @@
             </colgroup>
             <thead>
                 <tr>
-                    <th><input type="checkbox" id="s3-select-all" class="dropbox-js" style="display:none"></th>
+                    <th><input type="checkbox" id="s3-select-all" class="s3-header" style="display:none"></th>
                     <th><?php echo __('File Name'); ?></th>
                 </tr>
             </thead>
             <tbody id="s3-file-checkboxes">
             <?php foreach ($fileNames as $fileName): ?>
-                <tr><td><input type="checkbox" name="dropbox-files[]" value="<?php echo html_escape($fileName); ?>"/></td><td><?php echo html_escape($fileName); ?></td></tr>
+                <tr><td><input type="checkbox" name="s3-files[]" value="<?php echo html_escape($fileName); ?>"/></td><td><?php echo html_escape($fileName); ?></td></tr>
             <?php endforeach; ?>
             </tbody>
         </table>

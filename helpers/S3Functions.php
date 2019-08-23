@@ -52,7 +52,7 @@ function canAccessS3StagingFolder()
 function showS3FilesForItem($item)
 {
     testS3($item);
-    echo common('dropboxlist', array(), 'index');
+    echo common('s3-files-list', array(), 'index');
 }
 
 function getS3StagingFolderFileNames($directory)
