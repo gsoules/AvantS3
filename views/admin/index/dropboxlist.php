@@ -1,9 +1,9 @@
-<?php if (!dropbox_can_access_files_dir()): ?>
-    <p class="dropbox-alert error"><?php echo __('The Dropbox files directory must be both readable and writable.'); ?></p>
+<?php if (!canAccessS3StagingFolder()): ?>
+    <p class="error"><?php echo __('The S3 staging folder must be both readable and writable.'); ?></p>
 <?php else: ?>
-    <?php $fileNames = dropbox_dir_list(dropbox_get_files_dir_path()); ?>
+    <?php $fileNames = getS3StagingFolderFileNames(getS3StagingFolderPath()); ?>
     <?php if (!$fileNames): ?>
-        <p><strong><?php echo __('No files have been uploaded to the dropbox.'); ?></strong></p>
+        <p><strong><?php echo __('The S3 staging folder is empty.'); ?></strong></p>
     <?php else: ?>
         <script type="text/javascript">
             function dropboxSelectAllCheckboxes(checked) {

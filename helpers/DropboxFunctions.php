@@ -33,7 +33,7 @@ function testS3($item)
             continue;
         echo "$fileName<br>";
 
-        $saveFilePathName = dropbox_get_files_dir_path() . '/' . $fileName;
+        $saveFilePathName = getS3StagingFolderPath() . '/' . $fileName;
 
         $s3Client->getObject(array(
             'Bucket' => $bucketName,
@@ -43,48 +43,20 @@ function testS3($item)
     }
 }
 
-/**
- * Print the list of files in the Dropbox.
- */
-function dropbox_list($item)
+function canAccessS3StagingFolder()
+{
+    $filesDir = getS3StagingFolderPath();
+    return is_readable($filesDir) && is_writable($filesDir);
+}
+
+function showS3FilesForItem($item)
 {
     testS3($item);
     echo common('dropboxlist', array(), 'index');
 }
-/**
- * Get the absolute path to the Dropbox "files" directory.
- *
- * @return string
- */
-function dropbox_get_files_dir_path()
-{
-    return AVANTS3_DIR . DIRECTORY_SEPARATOR . 'files';
-}
 
-/**
- * Check if the necessary permissions are set for the files directory.
- *
- * The directory must be both writable and readable.
- *
- * @return boolean
- */
-function dropbox_can_access_files_dir()
+function getS3StagingFolderFileNames($directory)
 {
-    $filesDir = dropbox_get_files_dir_path();
-    return is_readable($filesDir) && is_writable($filesDir);
-}
-
-/**
- * Get a list of files in the given directory.
- *
- * The files are returned in natural-sorted, case-insensitive order.
- *
- * @param string $directory Path to directory.
- * @return array Array of filenames in the directory.
- */
-function dropbox_dir_list($directory)
-{
-    // create an array to hold directory list
     $filenames = array();
 
     $iter = new DirectoryIterator($directory);
@@ -100,27 +72,27 @@ function dropbox_dir_list($directory)
     return $filenames;
 }
 
-/**
- * Check if the given file can be uploaded from the dropbox.
- *
- * @throws Dropbox_Exception
- * @return string Validated path to the file
- */
-function dropbox_validate_file($fileName)
+function getS3StagingFolderPath()
 {
-    $dropboxDir = dropbox_get_files_dir_path();
-    $filePath = $dropboxDir .DIRECTORY_SEPARATOR . $fileName;
+    return AVANTS3_DIR . DIRECTORY_SEPARATOR . 'files';
+}
+
+function validateS3FileName($fileName)
+{
+    $s3StagingFolder = getS3StagingFolderPath();
+    $filePath = $s3StagingFolder .DIRECTORY_SEPARATOR . $fileName;
     $realFilePath = realpath($filePath);
-    // Ensure the path is actually within the dropbox files dir.
+
+    // Ensure the path is actually within the staging folder.
     if (!$realFilePath
-        || strpos($realFilePath, $dropboxDir . DIRECTORY_SEPARATOR) !== 0) {
-        throw new Dropbox_Exception(__('The given path is invalid.'));
+        || strpos($realFilePath, $s3StagingFolder . DIRECTORY_SEPARATOR) !== 0) {
+        throw new Exception(__('The given path is invalid.'));
     }
     if (!file_exists($realFilePath)) {
-        throw new Dropbox_Exception(__('The file "%s" does not exist or is not readable.', $fileName));
+        throw new Exception(__('The file "%s" does not exist or is not readable.', $fileName));
     }
     if (!is_readable($realFilePath)) {
-        throw new Dropbox_Exception(__('The file "%s" is not readable.', $fileName));
+        throw new Exception(__('The file "%s" is not readable.', $fileName));
     }
     return $realFilePath;
 }
