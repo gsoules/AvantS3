@@ -5,11 +5,33 @@ require __DIR__ . '../../../AvantElasticsearch/vendor/autoload.php';
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
 
-function testS3($item)
+function canAccessS3StagingFolder()
+{
+    $filesDir = getS3StagingFolderPath();
+    return is_readable($filesDir) && is_writable($filesDir);
+}
+
+function emitS3FileList($item)
+{
+    echo common('s3-files-list', array('item' => $item), 'index');
+}
+
+function getS3BucketName()
+{
+    return 'swhpl-digital-archive';
+}
+
+function getS3ParentFolderName($item)
 {
     $identifier = ItemMetadata::getItemIdentifier($item);
     $id = intval($identifier);
-    $parentFolder = $id - ($id % 1000);
+    $parentFolderName = $id - ($id % 1000);
+    return "$parentFolderName/$identifier";
+}
+
+function getS3FileNamesForItem($item)
+{
+    $parentFolderName = getS3ParentFolderName($item);
 
     $s3Client = new Aws\S3\S3Client([
         'profile' => 'default',
@@ -17,59 +39,62 @@ function testS3($item)
         'region' => 'us-east-2'
     ]);
 
-    $bucketName = 'swhpl-digital-archive';
-    $prefix = "Database/$parentFolder/$identifier";
+    $bucketName = getS3BucketName();
+    $prefix = "Database/$parentFolderName";
 
     $objects = $s3Client->getIterator('ListObjects', array(
         "Bucket" => $bucketName,
         "Prefix" => $prefix //must have the trailing forward slash "/"
     ));
 
+    $fileNames = array();
+
     foreach ($objects as $object)
     {
         $filePathName = $object['Key'];
-        $fileName = substr($filePathName, strlen($prefix) + 1);
+        $fileName = substr($filePathName, strlen('Database') + 1);
         if (empty($fileName))
             continue;
-        echo "$fileName<br>";
+
+        $fileNames[] = $fileName;
+    }
+
+    return $fileNames;
+}
+
+function downloadS3FilesToStagingFolder($item, $s3FileNames)
+{
+    $bucketName = getS3BucketName();
+
+    $userId = current_user()->id;
+
+    foreach ($s3FileNames as $fileName)
+    {
+        $parentFolderName = getS3ParentFolderName($item);
+
+        $itemFolder = getS3StagingFolderPath() . '/' . $parentFolderName;
+
+        if (!file_exists($itemFolder))
+        {
+            mkdir($itemFolder, 0777, true);
+        }
 
         $saveFilePathName = getS3StagingFolderPath() . '/' . $fileName;
 
+        $s3Client = new Aws\S3\S3Client([
+            'profile' => 'default',
+            'version' => 'latest',
+            'region' => 'us-east-2'
+        ]);
+
+        $key = "Database/$fileName";
+
         $s3Client->getObject(array(
             'Bucket' => $bucketName,
-            'Key'    => $filePathName,
+            'Key'    => $key,
             'SaveAs' => $saveFilePathName
         ));
     }
-}
-
-function canAccessS3StagingFolder()
-{
-    $filesDir = getS3StagingFolderPath();
-    return is_readable($filesDir) && is_writable($filesDir);
-}
-
-function showS3FilesForItem($item)
-{
-    testS3($item);
-    echo common('s3-files-list', array(), 'index');
-}
-
-function getS3StagingFolderFileNames($directory)
-{
-    $filenames = array();
-
-    $iter = new DirectoryIterator($directory);
-
-    foreach ($iter as $fileEntry) {
-        if ($fileEntry->isFile()) {
-            $filenames[] = $fileEntry->getFilename();
-        }
-    }
-
-    natcasesort($filenames);
-
-    return $filenames;
 }
 
 function getS3StagingFolderPath()

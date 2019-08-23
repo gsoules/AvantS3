@@ -13,8 +13,8 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
 
     public function hookAdminItemsFormFiles($args)
     {
-        echo '<h3>' . __('S3 files that can be attached to this item') . '</h3>';
-        showS3FilesForItem($args['item']);
+        echo '<h3>' . __('Add S3 Files') . '</h3>';
+        emitS3FileList($args['item']);
     }
     
     public function hookAfterSaveItem($args)
@@ -27,17 +27,19 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
             return;
         }
         
-        $fileNames = $post['s3-files'];
+        $s3FileNames = $post['s3-files'];
 
-        if ($fileNames)
+        if ($s3FileNames)
         {
             if (!canAccessS3StagingFolder())
             {
                 throw new Exception(__('The AvantS3 staging folder must be both readable and writable.'));
             }
 
+            downloadS3FilesToStagingFolder($item, $s3FileNames);
+
             $filePaths = array();
-            foreach ($fileNames as $fileName)
+            foreach ($s3FileNames as $fileName)
             {
                 $filePaths[] = validateS3FileName($fileName);
             }

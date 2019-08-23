@@ -1,7 +1,7 @@
 <?php if (!canAccessS3StagingFolder()): ?>
     <p class="error"><?php echo __('The S3 staging folder must be both readable and writable.'); ?></p>
 <?php else: ?>
-    <?php $fileNames = getS3StagingFolderFileNames(getS3StagingFolderPath()); ?>
+    <?php $fileNames = getS3FileNamesForItem($item); ?>
     <?php if (!$fileNames): ?>
         <p><strong><?php echo __('The S3 staging folder is empty.'); ?></strong></p>
     <?php else: ?>
