@@ -41,7 +41,7 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
             $filePaths = array();
             foreach ($s3FileNames as $fileName)
             {
-                $filePaths[] = validateS3FileName($fileName);
+                $filePaths[] = getAbsoluteFilePathName($fileName);
             }
 
             $files = array();
@@ -62,7 +62,7 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
             }
             release_object($files);
 
-            // delete the files
+            // Delete the files from the staging folders.
             foreach ($filePaths as $filePath)
             {
                 try
