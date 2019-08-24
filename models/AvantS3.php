@@ -11,17 +11,29 @@ class AvantS3
     const S3_NEW = 1;
     const S3_EXISTING = 2;
     const S3_INELIGIBLE = 3;
+    const MAX_LONG_EDGE = 1200;
 
     protected $fileNameList = array();
     protected $fileNameOrder = array();
     protected $filePathList = array();
     protected $item;
     protected $stagingFoldePath;
+    protected $s3Client;
 
     public function __construct($item)
     {
         $this->item = $item;
         $this->stagingFoldePath = $this->getStagingFolderPath();
+
+        $key = S3Config::getOptionValueForKey();
+        $secret = S3Config::getOptionValueForSecret();
+        $credentials = new Aws\Credentials\Credentials($key, $secret);
+
+        $this->s3Client = new Aws\S3\S3Client([
+            'version' => 'latest',
+            'region' => S3Config::getOptionValueForRegion(),
+            'credentials' => $credentials
+        ]);
     }
 
     public function attachS3FilesToItem()
@@ -109,15 +121,9 @@ class AvantS3
 
             $saveFilePathName = $this->stagingFoldePath . '/' . $fileName;
 
-            $s3Client = new Aws\S3\S3Client([
-                'profile' => 'default',
-                'version' => 'latest',
-                'region' => 'us-east-2'
-            ]);
-
             $key = "Database/$parentFolderName/$fileName";
 
-            $s3Client->getObject(array(
+            $this->s3Client->getObject(array(
                 'Bucket' => $bucketName,
                 'Key'    => $key,
                 'SaveAs' => $saveFilePathName
@@ -145,9 +151,9 @@ class AvantS3
             if (in_array($ext, $imageExt))
             {
                 $resizedFilePath = $filePath . '_';
-                // TO-DO Get edge length from AvantS3 configuration page
-                $maxEdgeLength = 1200;
-                $resized = $this->resizeImage($filePath, $resizedFilePath, $maxEdgeLength);
+
+                $resized = $this->resizeImage($filePath, $resizedFilePath, self::MAX_LONG_EDGE);
+
                 if ($resized)
                 {
                     unlink($filePath);
@@ -196,24 +202,17 @@ class AvantS3
 
     protected function getS3BucketName()
     {
-        // TO-DO Get S3 bucket name from plugin configuration
-        return 'swhpl-digital-archive';
+        return S3Config::getOptionValueForBucket();
     }
 
     public function getS3FileNamesForItem()
     {
         $parentFolderName = $this->getItemParentFolderName($this->item);
 
-        $s3Client = new Aws\S3\S3Client([
-            'profile' => 'default',
-            'version' => 'latest',
-            'region' => 'us-east-2'
-        ]);
-
         $bucketName = $this->getS3BucketName();
         $prefix = "Database/$parentFolderName";
 
-        $objects = $s3Client->getIterator('ListObjects', array(
+        $objects = $this->s3Client->getIterator('ListObjects', array(
             "Bucket" => $bucketName,
             "Prefix" => $prefix //must have the trailing forward slash "/"
         ));

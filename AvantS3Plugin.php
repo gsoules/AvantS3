@@ -6,6 +6,8 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
         'admin_head',
         'after_save_item',
         'admin_items_form_files',
+        'config',
+        'config_form'
     );
 
     public function hookAdminHead($args)
@@ -35,5 +37,15 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
         $avantS3->downloadS3FilesToStagingFolder($s3FileNames);
         $avantS3->deleteExistingFilesAttachedToItem();
         $avantS3->attachS3FilesToItem();
+    }
+
+    public function hookConfig()
+    {
+        S3Config::saveConfiguration();
+    }
+
+    public function hookConfigForm()
+    {
+        require dirname(__FILE__) . '/config_form.php';
     }
 }
