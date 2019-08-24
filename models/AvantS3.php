@@ -7,7 +7,8 @@ use Aws\Exception\AwsException;
 
 class AvantS3
 {
-    protected $fileList = array();
+    protected $fileNameList = array();
+    protected $filePathList = array();
     protected $item;
     protected $stagingFoldePath;
 
@@ -23,7 +24,7 @@ class AvantS3
 
         try
         {
-            $files = insert_files_for_item($this->item, 'Filesystem', $this->fileList, array('file_ingest_options' => array('ignore_invalid_files' => false)));
+            $files = insert_files_for_item($this->item, 'Filesystem', $this->filePathList, array('file_ingest_options' => array('ignore_invalid_files' => false)));
         }
         catch (Omeka_File_Ingest_InvalidException $e)
         {
@@ -39,7 +40,7 @@ class AvantS3
         release_object($files);
 
         // Delete the files from the staging folder.
-        foreach ($this->filePaths as $filePath)
+        foreach ($this->filePathList as $filePath)
         {
             try
             {
@@ -74,11 +75,14 @@ class AvantS3
             $fileIds[] = $file->id;
         }
 
-        $filesToDelete = $this->item->getTable('File')->findByItem($this->item->id, $fileIds, 'id');
+        $filesAttachedToItem = $this->item->getTable('File')->findByItem($this->item->id, $fileIds, 'id');
 
-        foreach ($filesToDelete as $fileRecord)
+        foreach ($filesAttachedToItem as $fileRecord)
         {
-            $fileRecord->delete();
+            if (in_array($fileRecord->original_filename, $this->fileNameList))
+            {
+                $fileRecord->delete();
+            }
         }
     }
 
@@ -114,7 +118,8 @@ class AvantS3
 
         foreach ($s3FileNames as $fileName)
         {
-            $this->fileList[] = $this->getAbsoluteFilePathName($fileName);
+            $this->filePathList[] = $this->getAbsoluteFilePathName($fileName);
+            $this->fileNameList[] = $fileName;
         }
     }
 
