@@ -121,6 +121,6 @@ class AvantS3
     {
         // Return a unique staging area folder for the logged-in user.
         $userId = current_user()->id;
-        return AVANTS3_DIR . DIRECTORY_SEPARATOR . 'files/' . $userId;
+        return AVANTS3_DIR . DIRECTORY_SEPARATOR . 'staging/user-' . $userId;
     }
 }
