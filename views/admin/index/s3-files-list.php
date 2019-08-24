@@ -1,4 +1,7 @@
-<?php $fileNames = getS3FileNamesForItem($item); ?>
+<?php
+$avantS3 = new AvantS3();
+$fileNames = $avantS3->getS3FileNamesForItem($item);
+?>
 <?php if (!$fileNames): ?>
     <p><strong><?php echo __('There are no S3 files for this item.'); ?></strong></p>
 <?php else: ?>

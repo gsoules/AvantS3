@@ -2,8 +2,6 @@
 
 define('AVANTS3_DIR',dirname(__FILE__));
 
-require_once AVANTS3_DIR . '/helpers/S3Functions.php';
-
 class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
 {
     protected $_hooks = array(
@@ -13,12 +11,15 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
 
     public function hookAdminItemsFormFiles($args)
     {
+        $item = $args['item'];
         echo '<h3>' . __('Add S3 Files') . '</h3>';
-        emitS3FileList($args['item']);
+        echo common('s3-files-list', array('item' => $item), 'index');
     }
     
     public function hookAfterSaveItem($args)
     {
+        $avantS3 = new AvantS3();
+
         $item = $args['record'];
         $post = $args['post'];
     
@@ -31,17 +32,17 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
 
         if ($s3FileNames)
         {
-            if (!canAccessS3StagingFolder())
+            if (!$avantS3->canAccessS3StagingFolder())
             {
                 throw new Exception(__('The AvantS3 staging folder must be both readable and writable.'));
             }
 
-            downloadS3FilesToStagingFolder($item, $s3FileNames);
+            $avantS3->downloadS3FilesToStagingFolder($item, $s3FileNames);
 
             $filePaths = array();
             foreach ($s3FileNames as $fileName)
             {
-                $filePaths[] = getAbsoluteFilePathName($fileName);
+                $filePaths[] = $avantS3->getAbsoluteFilePathName($fileName);
             }
 
             $files = array();
