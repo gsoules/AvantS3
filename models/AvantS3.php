@@ -1,5 +1,6 @@
 <?php
 
+// Use the AWS/S3 files from the AvantElasticsearch plugin to avoid having all the files in two places.
 require __DIR__ . '../../../AvantElasticsearch/vendor/autoload.php';
 
 use Aws\S3\S3Client;
