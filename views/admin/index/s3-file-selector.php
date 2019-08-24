@@ -8,7 +8,7 @@ if (!$fileNames)
     }
 else
 {
-    echo '<div class="s3-add-files explanation">' . __('Choose S3 files to add to this item. Large jpg images will be downsized to 1200 px on the long edge.') . '</div>';
+    echo '<div class="s3-add-files explanation">' . __('Choose S3 files to add to this item.') . '</div>';
 }
 ?>
 
@@ -85,3 +85,4 @@ else
     ?>
     </tbody>
 </table>
+<?php echo '<div class="s3-resize-message explanation">' . __('Large images will be downsized to 1200 px on long edge, but retain their S3 file name.') . '</div>'; ?>

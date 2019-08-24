@@ -144,6 +144,7 @@ class AvantS3
             if (in_array($ext, $imageExt))
             {
                 $resizedFilePath = $filePath . '_';
+                // TO-DO Get edge length from AvantS3 configuration page
                 $maxEdgeLength = 1200;
                 $resized = $this->resizeImage($filePath, $resizedFilePath, $maxEdgeLength);
                 if ($resized)
@@ -194,7 +195,7 @@ class AvantS3
 
     protected function getS3BucketName()
     {
-        // TO-DO Get from plugin configuration
+        // TO-DO Get S3 bucket name from plugin configuration
         return 'swhpl-digital-archive';
     }
 

@@ -3,6 +3,10 @@
     margin-bottom: 12px;
 }
 
+.s3-resize-message {
+    color: #777777;
+}
+
 /* Hide the file upload controls to ensure that file attachments only come from S3. */
 .add-new,
 .drawer-contents {
