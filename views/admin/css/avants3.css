@@ -1,3 +1,8 @@
+.s3-add-files {
+    margin-top: 36px;
+    margin-bottom: 12px;
+}
+
 /* Hide the file upload controls to ensure that file attachments only come from S3. */
 .add-new,
 .drawer-contents {

@@ -6,6 +6,10 @@ if (!$fileNames)
         echo '<p><strong>' . __('There are no S3 files for this item.') . '</strong></p>';
         return;
     }
+else
+{
+    echo '<div class="s3-add-files explanation">' . __('Choose S3 files to add to this item. Large jpg images will be downsized to 1200 px on the long edge.') . '</div>';
+}
 ?>
 
 <script type="text/javascript">
@@ -61,20 +65,20 @@ if (!$fileNames)
         $text = html_escape($fileName);
         if ($action == AvantS3::S3_EXISTING)
         {
-            $tableHtml .= '<td class="s3-existing">' . $text . '</td>';
+            $class = 's3-existing';
             $actionText = __('Replace existing file');
         }
         else if ($action == AvantS3::S3_INELIGIBLE)
         {
-            $tableHtml .= '<td class="s3-ineligible">' . $text . '</td>';
+            $class = 's3-ineligible"';
         }
         else
         {
-            $tableHtml .= '<td class="s3-add">' . $text . '</td>';
+            $class = 's3-add';
         }
 
+        $tableHtml .= '<td class="' . $class .'">' . $text . '</td>';
         $tableHtml .= '<td>' . $actionText . '</td>';
-
         $tableHtml .= '</tr>';
     }
     echo $tableHtml;
