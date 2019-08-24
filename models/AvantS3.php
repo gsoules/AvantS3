@@ -8,6 +8,7 @@ use Aws\Exception\AwsException;
 class AvantS3
 {
     protected $fileNameList = array();
+    protected $fileNameOrder = array();
     protected $filePathList = array();
     protected $item;
     protected $stagingFoldePath;
@@ -51,9 +52,11 @@ class AvantS3
                 throw $e;
             }
         }
+
+        $this->preserveOriginalFileOrder();
     }
 
-    public function canAccessStagingFolder()
+    protected function canAccessStagingFolder()
     {
         $path = $this->stagingFoldePath;
 
@@ -67,21 +70,21 @@ class AvantS3
 
     public function deleteExistingFilesAttachedToItem()
     {
-        $fileIds = array();
+        // Get all the files attached to this item.
+        $filesAttachedToItem = $this->item->getFiles();
 
-        $files = $this->item->getFiles();
-        foreach ($files as $file)
+        // Detach any file that is to be replaced by an S3 file having the same name.
+        foreach ($filesAttachedToItem as $file)
         {
-            $fileIds[] = $file->id;
-        }
+            $originalFileName = $file->original_filename;
 
-        $filesAttachedToItem = $this->item->getTable('File')->findByItem($this->item->id, $fileIds, 'id');
+            // Remember this file's order so it can be used as the order for the replacement file from S3.
+            $this->fileNameOrder[$originalFileName] = $file->order;
 
-        foreach ($filesAttachedToItem as $fileRecord)
-        {
-            if (in_array($fileRecord->original_filename, $this->fileNameList))
+            $s3FileReplacesAttachedFile = in_array($originalFileName, $this->fileNameList);
+            if ($s3FileReplacesAttachedFile)
             {
-                $fileRecord->delete();
+                $file->delete();
             }
         }
     }
@@ -123,7 +126,7 @@ class AvantS3
         }
     }
 
-    public function getAbsoluteFilePathName($fileName)
+    protected function getAbsoluteFilePathName($fileName)
     {
         $filePath = $this->stagingFoldePath . DIRECTORY_SEPARATOR . $fileName;
         $realFilePath = realpath($filePath);
@@ -141,7 +144,18 @@ class AvantS3
         return $realFilePath;
     }
 
-    public function getItemParentFolderName($item)
+    protected function getFileOrder($fileName)
+    {
+        foreach ($this->fileNameOrder as $name => $order)
+        {
+            if ($fileName == $name)
+                return $order;
+        }
+
+        return null;
+    }
+
+    protected function getItemParentFolderName($item)
     {
         $identifier = ItemMetadata::getItemIdentifier($item);
         $id = intval($identifier);
@@ -149,7 +163,7 @@ class AvantS3
         return "$parentFolderName/$identifier";
     }
 
-    public function getS3BucketName()
+    protected function getS3BucketName()
     {
         // TO-DO Get from plugin configuration
         return 'swhpl-digital-archive';
@@ -190,10 +204,30 @@ class AvantS3
         return $fileNames;
     }
 
-    public function getStagingFolderPath()
+    protected function getStagingFolderPath()
     {
         // Return a unique folder for this user to avoid collisions when multiple users are logged in.
         $userId = current_user()->id;
         return FILES_DIR . DIRECTORY_SEPARATOR . 's3/user-' . $userId;
+    }
+
+    protected function preserveOriginalFileOrder()
+    {
+        // Restores the original order of files that were replaced by newer S3 files. Without
+        // this, the replacements end up at the end of the file list as though added as new files.
+
+        $filesAttachedToItem = $this->item->getFiles();
+
+        foreach ($filesAttachedToItem as $file)
+        {
+            $originalFileName = $file->original_filename;
+            $s3FileReplacedAttachedFile = in_array($originalFileName, $this->fileNameList);
+            if ($s3FileReplacedAttachedFile)
+            {
+                $order = $this->getFileOrder($originalFileName);
+                $file->order = $order;
+                $file->save();
+            }
+        }
     }
 }
