@@ -7,13 +7,17 @@ use Aws\Exception\AwsException;
 
 class AvantS3
 {
+    const S3_NEW = 1;
+    const S3_EXISTING = 2;
+    const S3_INELIGIBLE = 3;
+
     protected $fileNameList = array();
     protected $fileNameOrder = array();
     protected $filePathList = array();
     protected $item;
     protected $stagingFoldePath;
 
-    public function __construct($item = null)
+    public function __construct($item)
     {
         $this->item = $item;
         $this->stagingFoldePath = $this->getStagingFolderPath();
@@ -169,9 +173,9 @@ class AvantS3
         return 'swhpl-digital-archive';
     }
 
-    public function getS3FileNamesForItem($item)
+    public function getS3FileNamesForItem()
     {
-        $parentFolderName = $this->getItemParentFolderName($item);
+        $parentFolderName = $this->getItemParentFolderName($this->item);
 
         $s3Client = new Aws\S3\S3Client([
             'profile' => 'default',
@@ -187,6 +191,8 @@ class AvantS3
             "Prefix" => $prefix //must have the trailing forward slash "/"
         ));
 
+        $filesAttachedToItem = $this->item->getFiles();
+
         $fileNames = array();
 
         foreach ($objects as $object)
@@ -196,12 +202,33 @@ class AvantS3
             if (empty($fileName))
                 continue;
 
-            $fileNames[] = $fileName;
+            $fileNames[$fileName] = $this->getS3FileStatus($filesAttachedToItem, $fileName);
         }
 
-        // TO-DO Filter out ineligible files i.e. leave only PDF, JPG, TXT, and audio
-
         return $fileNames;
+    }
+
+    protected function getS3FileStatus($filesAttachedToItem, $fileName)
+    {
+        $status = self::S3_NEW;
+
+        foreach ($filesAttachedToItem as $file)
+        {
+            if ($fileName == $file->original_filename)
+            {
+                $status = self::S3_EXISTING;
+                break;
+            }
+        }
+
+        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        $validExt = array('jpg', 'jpeg', 'pdf', 'txt');
+        if (!in_array($ext, $validExt))
+        {
+            $status = self::S3_INELIGIBLE;
+        }
+
+        return $status;
     }
 
     protected function getStagingFolderPath()

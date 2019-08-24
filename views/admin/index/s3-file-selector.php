@@ -1,6 +1,6 @@
 <?php
-$avantS3 = new AvantS3();
-$fileNames = $avantS3->getS3FileNamesForItem($item);
+$avantS3 = new AvantS3($item);
+$fileNames = $avantS3->getS3FileNamesForItem();
 if (!$fileNames)
     {
         echo '<p><strong>' . __('There are no S3 files for this item.') . '</strong></p>';
@@ -40,8 +40,12 @@ if (!$fileNames)
         </tr>
     </thead>
     <tbody id="s3-file-checkboxes">
-    <?php foreach ($fileNames as $fileName): ?>
-        <tr><td><input type="checkbox" name="s3-files[]" value="<?php echo html_escape($fileName); ?>"/></td><td><?php echo html_escape($fileName); ?></td></tr>
+    <?php foreach ($fileNames as $fileName => $status): ?>
+        <tr>
+            <td><input type="checkbox" name="s3-files[]" value="<?php echo html_escape($fileName); ?>"/></td>
+            <td><?php echo html_escape($fileName); ?></td>
+            <td><?php echo $status; ?></td>
+        </tr>
     <?php endforeach; ?>
     </tbody>
 </table>
