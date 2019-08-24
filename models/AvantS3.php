@@ -7,13 +7,54 @@ use Aws\Exception\AwsException;
 
 class AvantS3
 {
-    public function __construct()
+    protected $fileList = array();
+    protected $item;
+    protected $stagingFoldePath;
+
+    public function __construct($item = null)
     {
+        $this->item = $item;
+        $this->stagingFoldePath = $this->getStagingFolderPath();
     }
 
-    public function canAccessS3StagingFolder()
+    public function attachS3FilesToItem()
     {
-        $path = $this->getS3StagingFolderPath();
+        $files = array();
+
+        try
+        {
+            $files = insert_files_for_item($this->item, 'Filesystem', $this->fileList, array('file_ingest_options' => array('ignore_invalid_files' => false)));
+        }
+        catch (Omeka_File_Ingest_InvalidException $e)
+        {
+            release_object($files);
+            $this->item->addError('AvantS3', $e->getMessage());
+            return;
+        }
+        catch (Exception $e)
+        {
+            release_object($files);
+            throw $e;
+        }
+        release_object($files);
+
+        // Delete the files from the staging folder.
+        foreach ($this->filePaths as $filePath)
+        {
+            try
+            {
+                unlink($filePath);
+            }
+            catch (Exception $e)
+            {
+                throw $e;
+            }
+        }
+    }
+
+    public function canAccessStagingFolder()
+    {
+        $path = $this->stagingFoldePath;
 
         if (!file_exists($path))
         {
@@ -23,17 +64,38 @@ class AvantS3
         return is_readable($path) && is_writable($path);
     }
 
-    public function downloadS3FilesToStagingFolder($item, $s3FileNames)
+    public function deleteExistingFilesAttachedToItem()
     {
+        $fileIds = array();
+
+        $files = $this->item->getFiles();
+        foreach ($files as $file)
+        {
+            $fileIds[] = $file->id;
+        }
+
+        $filesToDelete = $this->item->getTable('File')->findByItem($this->item->id, $fileIds, 'id');
+
+        foreach ($filesToDelete as $fileRecord)
+        {
+            $fileRecord->delete();
+        }
+    }
+
+    public function downloadS3FilesToStagingFolder($s3FileNames)
+    {
+        if (!$this->canAccessStagingFolder())
+        {
+            throw new Exception(__('The AvantS3 staging folder "%s" does have the correct permissions.', $this->stagingFoldePath));
+        }
+
         $bucketName = $this->getS3BucketName();
 
         foreach ($s3FileNames as $fileName)
         {
-            $parentFolderName = $this->getS3ParentFolderName($item);
+            $parentFolderName = $this->getItemParentFolderName($this->item);
 
-            $itemFolder = $this->getS3StagingFolderPath();
-
-            $saveFilePathName = $itemFolder . '/' . $fileName;
+            $saveFilePathName = $this->stagingFoldePath . '/' . $fileName;
 
             $s3Client = new Aws\S3\S3Client([
                 'profile' => 'default',
@@ -49,18 +111,16 @@ class AvantS3
                 'SaveAs' => $saveFilePathName
             ));
         }
-    }
 
-    public function getS3BucketName()
-    {
-        // TO-DO Get from plugin configuration
-        return 'swhpl-digital-archive';
+        foreach ($s3FileNames as $fileName)
+        {
+            $this->fileList[] = $this->getAbsoluteFilePathName($fileName);
+        }
     }
 
     public function getAbsoluteFilePathName($fileName)
     {
-        $s3StagingFolder = $this->getS3StagingFolderPath();
-        $filePath = $s3StagingFolder .DIRECTORY_SEPARATOR . $fileName;
+        $filePath = $this->stagingFoldePath . DIRECTORY_SEPARATOR . $fileName;
         $realFilePath = realpath($filePath);
 
         if (!file_exists($realFilePath))
@@ -76,9 +136,23 @@ class AvantS3
         return $realFilePath;
     }
 
+    public function getItemParentFolderName($item)
+    {
+        $identifier = ItemMetadata::getItemIdentifier($item);
+        $id = intval($identifier);
+        $parentFolderName = $id - ($id % 1000);
+        return "$parentFolderName/$identifier";
+    }
+
+    public function getS3BucketName()
+    {
+        // TO-DO Get from plugin configuration
+        return 'swhpl-digital-archive';
+    }
+
     public function getS3FileNamesForItem($item)
     {
-        $parentFolderName = $this->getS3ParentFolderName($item);
+        $parentFolderName = $this->getItemParentFolderName($item);
 
         $s3Client = new Aws\S3\S3Client([
             'profile' => 'default',
@@ -106,21 +180,15 @@ class AvantS3
             $fileNames[] = $fileName;
         }
 
+        // TO-DO Filter out ineligible files i.e. leave only PDF, JPG, TXT, and audio
+
         return $fileNames;
     }
 
-    public function getS3ParentFolderName($item)
+    public function getStagingFolderPath()
     {
-        $identifier = ItemMetadata::getItemIdentifier($item);
-        $id = intval($identifier);
-        $parentFolderName = $id - ($id % 1000);
-        return "$parentFolderName/$identifier";
-    }
-
-    public function getS3StagingFolderPath()
-    {
-        // Return a unique staging area folder for the logged-in user.
+        // Return a unique folder for this user to avoid collisions when multiple users are logged in.
         $userId = current_user()->id;
-        return AVANTS3_DIR . DIRECTORY_SEPARATOR . 'staging/user-' . $userId;
+        return FILES_DIR . DIRECTORY_SEPARATOR . 's3/user-' . $userId;
     }
 }
