@@ -125,8 +125,33 @@ class AvantS3
 
         foreach ($s3FileNames as $fileName)
         {
-            $this->filePathList[] = $this->getAbsoluteFilePathName($fileName);
+            $filePath = $this->getAbsoluteFilePathName($fileName);
+            $this->filePathList[] = $filePath;
             $this->fileNameList[] = $fileName;
+        }
+
+        $this->downSizeLargeImages($s3FileNames);
+    }
+
+    protected function downSizeLargeImages($s3FileNames)
+    {
+        foreach ($s3FileNames as $fileName)
+        {
+            $filePath = $this->getAbsoluteFilePathName($fileName);
+            $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            $imageExt = array('jpg', 'jpeg');
+
+            if (in_array($ext, $imageExt))
+            {
+                $resizedFilePath = $filePath . '_';
+                $maxEdgeLength = 1200;
+                $resized = $this->resizeImage($filePath, $resizedFilePath, $maxEdgeLength);
+                if ($resized)
+                {
+                    unlink($filePath);
+                    rename($resizedFilePath, $filePath);
+                }
+            }
         }
     }
 
@@ -255,6 +280,60 @@ class AvantS3
                 $file->order = $order;
                 $file->save();
             }
+        }
+    }
+
+    /**
+     * Resize image - preserve ratio of width and height.
+     * @param string $sourceImage path to source JPEG image
+     * @param string $targetImage path to final JPEG image file
+     * @param int $maxWidth maximum width of final image (value 0 - width is optional)
+     * @param int $maxHeight maximum height of final image (value 0 - height is optional)
+     * @param int $quality quality of final image (0-100)
+     * @return bool
+     *
+     * Derived from: https://gist.github.com/janzikan/2994977
+     */
+    function resizeImage($sourceImage, $targetImage, $maxEdgeLength, $quality = 80)
+    {
+        // Obtain image from given source file.
+        if (!$image = @imagecreatefromjpeg($sourceImage))
+        {
+            return false;
+        }
+
+        // Get dimensions of source image.
+        list($origWidth, $origHeight) = getimagesize($sourceImage);
+        // Calculate ratio of desired maximum sizes and original sizes.
+        $widthRatio = $maxEdgeLength / $origWidth;
+        $heightRatio = $maxEdgeLength / $origHeight;
+
+        // Ratio used for calculating new image dimensions.
+        $ratio = min($widthRatio, $heightRatio);
+
+        if ($ratio < 1.0)
+        {
+            // The image needs to be downsized. Calculate new image dimensions.
+            $newWidth  = (int)$origWidth  * $ratio;
+            $newHeight = (int)$origHeight * $ratio;
+
+            // Create final image with new dimensions.
+            $newImage = imagecreatetruecolor($newWidth, $newHeight);
+            imagecopyresampled($newImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+            imagejpeg($newImage, $targetImage, $quality);
+
+            // Free up the memory.
+            imagedestroy($newImage);
+            imagedestroy($image);
+
+            return true;
+        }
+        else
+        {
+            // The image is already small enough. Just free the memory.
+            imagedestroy($image);
+
+            return false;
         }
     }
 }

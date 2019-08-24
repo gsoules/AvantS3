@@ -3,14 +3,20 @@
 class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
 {
     protected $_hooks = array(
+        'admin_head',
         'after_save_item',
         'admin_items_form_files',
     );
 
+    public function hookAdminHead($args)
+    {
+        queue_css_file('avants3');
+    }
+
     public function hookAdminItemsFormFiles($args)
     {
         $item = $args['item'];
-        echo '<h3>' . __('Add S3 Files') . '</h3>';
+        echo '<h3>' . __('Add S3 files to this item') . '</h3>';
         echo common('s3-file-selector', array('item' => $item), 'index');
     }
     

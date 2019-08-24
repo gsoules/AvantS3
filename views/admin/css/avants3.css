@@ -1,0 +1,17 @@
+/* Hide the file upload controls to ensure that file attachments only come from S3. */
+.add-new,
+.drawer-contents {
+    display: none;
+}
+
+.s3-existing {
+    color: #C76941;
+}
+
+.s3-ineligible {
+    color: #777777;
+}
+
+.s3-add {
+    color: green;
+}

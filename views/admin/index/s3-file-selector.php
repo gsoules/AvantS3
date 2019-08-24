@@ -61,12 +61,16 @@ if (!$fileNames)
         $text = html_escape($fileName);
         if ($action == AvantS3::S3_EXISTING)
         {
-            $tableHtml .= '<td><strong>' . $text . '</strong></td>';
+            $tableHtml .= '<td class="s3-existing">' . $text . '</td>';
             $actionText = __('Replace existing file');
+        }
+        else if ($action == AvantS3::S3_INELIGIBLE)
+        {
+            $tableHtml .= '<td class="s3-ineligible">' . $text . '</td>';
         }
         else
         {
-            $tableHtml .= '<td>' . $text . '</td>';
+            $tableHtml .= '<td class="s3-add">' . $text . '</td>';
         }
 
         $tableHtml .= '<td>' . $actionText . '</td>';
