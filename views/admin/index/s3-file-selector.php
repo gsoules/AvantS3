@@ -34,18 +34,46 @@ if (!$fileNames)
         <col>
     </colgroup>
     <thead>
-        <tr>
-            <th><input type="checkbox" id="s3-select-all" class="s3-header" style="display:none"></th>
-            <th><?php echo __('File Name'); ?></th>
-        </tr>
+    <tr>
+        <th><input type="checkbox" id="s3-select-all" class="s3-header" style="display:none"></th>
+        <th><?php echo __('File Name'); ?></th>
+        <th><?php echo __('Action'); ?></th>
+    </tr>
     </thead>
     <tbody id="s3-file-checkboxes">
-    <?php foreach ($fileNames as $fileName => $status): ?>
-        <tr>
-            <td><input type="checkbox" name="s3-files[]" value="<?php echo html_escape($fileName); ?>"/></td>
-            <td><?php echo html_escape($fileName); ?></td>
-            <td><?php echo $status; ?></td>
-        </tr>
-    <?php endforeach; ?>
+    <?php
+    $tableHtml = '';
+    foreach ($fileNames as $fileName => $action)
+    {
+        $actionText = __('Add to item');
+        $tableHtml .= '<tr>';
+
+        if ($action == AvantS3::S3_INELIGIBLE)
+        {
+            $tableHtml .= '<td></td>';
+            $actionText = __('Cannot add this file type');
+        }
+        else
+        {
+            $tableHtml .= '<td><input type="checkbox" name="s3-files[]" value="' . html_escape($fileName) . '"/></td>';
+        }
+
+        $text = html_escape($fileName);
+        if ($action == AvantS3::S3_EXISTING)
+        {
+            $tableHtml .= '<td><strong>' . $text . '</strong></td>';
+            $actionText = __('Replace existing file');
+        }
+        else
+        {
+            $tableHtml .= '<td>' . $text . '</td>';
+        }
+
+        $tableHtml .= '<td>' . $actionText . '</td>';
+
+        $tableHtml .= '</tr>';
+    }
+    echo $tableHtml;
+    ?>
     </tbody>
 </table>

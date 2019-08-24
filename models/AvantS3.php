@@ -202,21 +202,21 @@ class AvantS3
             if (empty($fileName))
                 continue;
 
-            $fileNames[$fileName] = $this->getS3FileStatus($filesAttachedToItem, $fileName);
+            $fileNames[$fileName] = $this->getS3FileAction($filesAttachedToItem, $fileName);
         }
 
         return $fileNames;
     }
 
-    protected function getS3FileStatus($filesAttachedToItem, $fileName)
+    protected function getS3FileAction($filesAttachedToItem, $fileName)
     {
-        $status = self::S3_NEW;
+        $action = self::S3_NEW;
 
         foreach ($filesAttachedToItem as $file)
         {
             if ($fileName == $file->original_filename)
             {
-                $status = self::S3_EXISTING;
+                $action = self::S3_EXISTING;
                 break;
             }
         }
@@ -225,10 +225,10 @@ class AvantS3
         $validExt = array('jpg', 'jpeg', 'pdf', 'txt');
         if (!in_array($ext, $validExt))
         {
-            $status = self::S3_INELIGIBLE;
+            $action = self::S3_INELIGIBLE;
         }
 
-        return $status;
+        return $action;
     }
 
     protected function getStagingFolderPath()
