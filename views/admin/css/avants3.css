@@ -13,14 +13,18 @@
     display: none;
 }
 
+.s3-add {
+    color: green;
+}
+
+.s3-error {
+    color: red;
+}
+
 .s3-existing {
     color: #C76941;
 }
 
 .s3-ineligible {
     color: #777777;
-}
-
-.s3-add {
-    color: green;
 }

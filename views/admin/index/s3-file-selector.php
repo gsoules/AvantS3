@@ -47,36 +47,33 @@ else
     <tbody id="s3-file-checkboxes">
     <?php
     $tableHtml = '';
+
     foreach ($fileNames as $fileName => $action)
     {
-        $actionText = __('Add to item');
         $tableHtml .= '<tr>';
 
-        if ($action == AvantS3::S3_INELIGIBLE)
+        if ($action == AvantS3::S3_INELIGIBLE || $action == AvantS3::S3_ERROR)
         {
             $tableHtml .= '<td></td>';
-            $actionText = __('Cannot add this file type');
+            $class = $action == AvantS3::S3_INELIGIBLE ? 's3-ineligible' : 's3-error';
+            $actionText = $action == AvantS3::S3_INELIGIBLE ? __('Cannot add this file type') : '';
         }
         else
         {
             $tableHtml .= '<td><input type="checkbox" name="s3-files[]" value="' . html_escape($fileName) . '"/></td>';
+            if ($action == AvantS3::S3_EXISTING)
+            {
+                $class = 's3-existing';
+                $actionText = __('Replace existing file');
+            }
+            else
+            {
+                $class = 's3-add';
+                $actionText = __('Add to item');
+            }
         }
 
         $text = html_escape($fileName);
-        if ($action == AvantS3::S3_EXISTING)
-        {
-            $class = 's3-existing';
-            $actionText = __('Replace existing file');
-        }
-        else if ($action == AvantS3::S3_INELIGIBLE)
-        {
-            $class = 's3-ineligible"';
-        }
-        else
-        {
-            $class = 's3-add';
-        }
-
         $tableHtml .= '<td class="' . $class .'">' . $text . '</td>';
         $tableHtml .= '<td>' . $actionText . '</td>';
         $tableHtml .= '</tr>';

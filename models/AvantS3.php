@@ -11,6 +11,7 @@ class AvantS3
     const S3_NEW = 1;
     const S3_EXISTING = 2;
     const S3_INELIGIBLE = 3;
+    const S3_ERROR = 4;
     const MAX_LONG_EDGE = 1200;
 
     protected $fileNameList = array();
@@ -221,14 +222,21 @@ class AvantS3
 
         $fileNames = array();
 
-        foreach ($objects as $object)
+        try
         {
-            $filePathName = $object['Key'];
-            $fileName = substr($filePathName, strlen($prefix) + 1);
-            if (empty($fileName))
-                continue;
+            foreach ($objects as $object)
+            {
+                $filePathName = $object['Key'];
+                $fileName = substr($filePathName, strlen($prefix) + 1);
+                if (empty($fileName))
+                    continue;
 
-            $fileNames[$fileName] = $this->getS3FileAction($filesAttachedToItem, $fileName);
+                $fileNames[$fileName] = $this->getS3FileAction($filesAttachedToItem, $fileName);
+            }
+        }
+        catch (Aws\S3\Exception\S3Exception $e)
+        {
+            $fileNames['Unable to access AWS S3 Server'] = self::S3_ERROR;
         }
 
         return $fileNames;
