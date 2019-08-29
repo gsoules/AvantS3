@@ -2,7 +2,9 @@
 $view = get_view();
 
 $bucket = S3Config::getOptionValueForBucket();
+$console = S3Config::getOptionValueForConsole();
 $key = S3Config::getOptionValueForKey();
+$path = S3Config::getOptionValueForPath();
 $region = S3Config::getOptionValueForRegion();
 $secret = S3Config::getOptionValueForSecret();
 
@@ -19,11 +21,31 @@ $secret = S3Config::getOptionValueForSecret();
 
 <div class="field">
     <div class="two columns alpha">
+        <label><?php echo CONFIG_LABEL_S3_CONSOLE; ?></label>
+    </div>
+    <div class="inputs five columns omega">
+        <p class="explanation"><?php echo __('S3 Management Console URL'); ?></p>
+        <?php echo $view->formText(S3Config::OPTION_S3_CONSOLE, $console); ?>
+    </div>
+</div>
+
+<div class="field">
+    <div class="two columns alpha">
         <label><?php echo CONFIG_LABEL_S3_BUCKET; ?></label>
     </div>
     <div class="inputs five columns omega">
         <p class="explanation"><?php echo __('S3 bucket name for the Digital Archive'); ?></p>
         <?php echo $view->formText(S3Config::OPTION_S3_BUCKET, $bucket); ?>
+    </div>
+</div>
+
+<div class="field">
+    <div class="two columns alpha">
+        <label><?php echo CONFIG_LABEL_S3_PATH; ?></label>
+    </div>
+    <div class="inputs five columns omega">
+        <p class="explanation"><?php echo __('Path to database folders'); ?></p>
+        <?php echo $view->formText(S3Config::OPTION_S3_PATH, $path); ?>
     </div>
 </div>
 
