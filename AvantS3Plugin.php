@@ -26,17 +26,23 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
         $item = $args['record'];
         $post = $args['post'];
     
-        if (!($post && isset($post['s3-files'])))
-            return;
+        if (($post && isset($post['s3-files'])))
+        {
+            $s3FileNames = $post['s3-files'];
+            if (!empty($s3FileNames))
+            {
+                $avantS3 = new AvantS3($item);
+                $avantS3->downloadS3FilesToStagingFolder($s3FileNames);
+                $avantS3->deleteExistingFilesAttachedToItem();
+                $avantS3->attachS3FilesToItem();
+            }
+        }
 
-        $s3FileNames = $post['s3-files'];
-        if (empty($s3FileNames))
-            return;
-
-        $avantS3 = new AvantS3($item);
-        $avantS3->downloadS3FilesToStagingFolder($s3FileNames);
-        $avantS3->deleteExistingFilesAttachedToItem();
-        $avantS3->attachS3FilesToItem();
+        // Invoke the logic that would normally be called by AvantElasticsearch's after_save_item hook. When AvantS3
+        // is installed, that hook does nothing so that this hook can first attach PDF files before AvantElasticsearch
+        // indexes the item and its PDF files.
+        $avantElasticsearch = new AvantElasticsearch();
+        $avantElasticsearch->afterSaveItem($args);
     }
 
     public function hookConfig()
