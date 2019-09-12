@@ -25,6 +25,8 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
     {
         $item = $args['record'];
         $post = $args['post'];
+
+        $failed = false;
     
         if (($post && isset($post['s3-files'])))
         {
@@ -32,9 +34,16 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
             if (!empty($s3FileNames))
             {
                 $avantS3 = new AvantS3($item);
-                $avantS3->downloadS3FilesToStagingFolder($s3FileNames);
-                $avantS3->deleteExistingFilesAttachedToItem();
-                $avantS3->attachS3FilesToItem();
+                $downloaded = $avantS3->downloadS3FilesToStagingFolder($s3FileNames);
+                if ($downloaded)
+                {
+                    $avantS3->deleteExistingFilesAttachedToItem();
+                    $avantS3->attachS3FilesToItem();
+                }
+                else
+                {
+                    $failed = true;
+                }
             }
         }
 
@@ -43,6 +52,12 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
         // indexes the item and its PDF files.
         $avantElasticsearch = new AvantElasticsearch();
         $avantElasticsearch->afterSaveItem($args);
+
+        if ($failed)
+        {
+            // See AvantS3::resizeImage() for the cause of this error.
+            throw new Exception("Unable to upload S3 image file because of insufficient memory. Resize the image to have smaller dimensions (width x height) and try again.");
+        }
     }
 
     public function hookConfig()

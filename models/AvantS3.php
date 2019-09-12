@@ -138,7 +138,8 @@ class AvantS3
             $this->fileNameList[] = $fileName;
         }
 
-        $this->downSizeLargeImages($s3FileNames);
+        $downSized = $this->downSizeLargeImages($s3FileNames);
+        return $downSized;
     }
 
     protected function downSizeLargeImages($s3FileNames)
@@ -160,8 +161,29 @@ class AvantS3
                     unlink($filePath);
                     rename($resizedFilePath, $filePath);
                 }
+                else
+                    return false;
             }
         }
+        return true;
+    }
+
+    protected function fileCanBeResized($sourceImage)
+    {
+        $imageInfo = getimagesize($sourceImage);
+
+        // Determine if there is enough memory to resize the image. If not, this method returns false which results
+        // in an exception being thrown later. The exception is better than running out of memory which manifests
+        // itself as an all-white browser page. If that happens, fine-tune this logic to better guess available memory.
+        $width = $imageInfo[0];
+        $height = $imageInfo[1];
+        $bitDepth = $imageInfo['bits'] * $imageInfo['channels'];
+        $bits = $width * $height * $bitDepth;
+        $bytes = $bits / 8;
+        $mbBytes = round($bytes / (1024 * 1024));
+        $mbLimit = 256;
+        $isEnoughMemory = ($mbLimit - $mbBytes) > 0;
+        return $isEnoughMemory;
     }
 
     protected function getAbsoluteFilePathName($fileName)
@@ -292,21 +314,23 @@ class AvantS3
         }
     }
 
-    /**
-     * Resize image - preserve ratio of width and height.
-     * @param string $sourceImage path to source JPEG image
-     * @param string $targetImage path to final JPEG image file
-     * @param int $maxWidth maximum width of final image (value 0 - width is optional)
-     * @param int $maxHeight maximum height of final image (value 0 - height is optional)
-     * @param int $quality quality of final image (0-100)
-     * @return bool
-     *
-     * Derived from: https://gist.github.com/janzikan/2994977
-     */
     function resizeImage($sourceImage, $targetImage, $maxEdgeLength, $quality = 80)
     {
-        // Obtain image from given source file.
-        if (!$image = @imagecreatefromjpeg($sourceImage))
+       // Derived from: https://gist.github.com/janzikan/2994977
+
+        if ($this->fileCanBeResized($sourceImage))
+        {
+            $image = @imagecreatefromjpeg($sourceImage);
+        }
+        else
+        {
+            // When there is not enough memory to resize the image, this method returns  false which results in an
+            // exception being thrown later. The exception is better than running out of memory which manifests itself
+            // as an all-white browser page. If that happens, fine-tune the logic to better guess available memory.
+            return false;
+        }
+
+        if (!$image)
         {
             return false;
         }
