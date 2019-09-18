@@ -363,10 +363,12 @@ class AvantS3
         }
         else
         {
-            // The image is already small enough. Just free the memory.
+            // The image is already small enough. Free the memory.
             imagedestroy($image);
 
-            return false;
+            // Rename the source to the target as though the resize operation had occurred successfully.
+            rename($sourceImage, $targetImage);
+            return true;
         }
     }
 }
