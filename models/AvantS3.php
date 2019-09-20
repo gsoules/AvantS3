@@ -10,8 +10,9 @@ class AvantS3
 {
     const S3_NEW = 1;
     const S3_EXISTING = 2;
-    const S3_INELIGIBLE = 3;
-    const S3_ERROR = 4;
+    const S3_FOLDER = 3;
+    const S3_INELIGIBLE = 4;
+    const S3_ERROR = 5;
     const MAX_LONG_EDGE = 1200;
 
     protected $fileNameList = array();
@@ -255,6 +256,8 @@ class AvantS3
 
                 $fileNames[$fileName] = $this->getS3FileAction($filesAttachedToItem, $fileName);
             }
+
+            asort($fileNames);
         }
         catch (Aws\S3\Exception\S3Exception $e)
         {
@@ -282,6 +285,11 @@ class AvantS3
         if (!in_array($ext, $validExt))
         {
             $action = self::S3_INELIGIBLE;
+        }
+
+        if (strpos($fileName, '/') !== false)
+        {
+            $action = self::S3_FOLDER;
         }
 
         return $action;

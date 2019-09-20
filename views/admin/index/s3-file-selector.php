@@ -52,13 +52,7 @@ else
     {
         $tableHtml .= '<tr>';
 
-        if ($action == AvantS3::S3_INELIGIBLE || $action == AvantS3::S3_ERROR)
-        {
-            $tableHtml .= '<td></td>';
-            $class = $action == AvantS3::S3_INELIGIBLE ? 's3-ineligible' : 's3-error';
-            $actionText = $action == AvantS3::S3_INELIGIBLE ? __('Cannot add this file type') : '';
-        }
-        else
+        if ($action == AvantS3::S3_NEW || $action == AvantS3::S3_EXISTING)
         {
             $tableHtml .= '<td><input type="checkbox" name="s3-files[]" value="' . html_escape($fileName) . '"/></td>';
             if ($action == AvantS3::S3_EXISTING)
@@ -70,6 +64,20 @@ else
             {
                 $class = 's3-add';
                 $actionText = __('Add to item');
+            }
+        }
+        else
+        {
+            $tableHtml .= '<td></td>';
+            if ($action == AvantS3::S3_FOLDER)
+            {
+                $class = 's3-folder';
+                $actionText = __('Folder');
+            }
+            else
+            {
+                $class = $action == AvantS3::S3_INELIGIBLE ? 's3-ineligible' : 's3-error';
+                $actionText = $action == AvantS3::S3_INELIGIBLE ? __('Cannot add this file type') : '';
             }
         }
 
