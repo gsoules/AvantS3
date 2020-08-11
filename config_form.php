@@ -16,7 +16,7 @@ $secret = S3Config::getOptionValueForSecret();
 </style>
 
 <div class="plugin-help learn-more">
-    <a href="https://github.com/gsoules/AvantS3" target="_blank">Learn about this plugin</a>
+    <a href="https://digitalarchive.us/plugins/avants3/" target="_blank">Learn about this plugin</a>
 </div>
 
 <div class="field">
