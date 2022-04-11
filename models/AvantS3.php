@@ -281,7 +281,7 @@ class AvantS3
         }
 
         $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        $validExt = array('jpg', 'jpeg', 'pdf', 'txt');
+        $validExt = array('jpg', 'jpeg', 'pdf', 'txt', 'mp3');
         if (!in_array($ext, $validExt))
         {
             $action = self::S3_INELIGIBLE;
