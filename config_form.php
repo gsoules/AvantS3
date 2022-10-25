@@ -4,7 +4,8 @@ $view = get_view();
 $bucket = S3Config::getOptionValueForBucket();
 $console = S3Config::getOptionValueForConsole();
 $key = S3Config::getOptionValueForKey();
-$path = S3Config::getOptionValueForPath();
+$pathAccessions = S3Config::getOptionValueForPathAccessions();
+$pathItems = S3Config::getOptionValueForPathItems();
 $region = S3Config::getOptionValueForRegion();
 $secret = S3Config::getOptionValueForSecret();
 
@@ -41,11 +42,21 @@ $secret = S3Config::getOptionValueForSecret();
 
 <div class="field">
     <div class="two columns alpha">
-        <label><?php echo CONFIG_LABEL_S3_PATH; ?></label>
+        <label><?php echo CONFIG_LABEL_S3_PATH_ITEMS; ?></label>
     </div>
     <div class="inputs five columns omega">
-        <p class="explanation"><?php echo __('Path to database folders'); ?></p>
-        <?php echo $view->formText(S3Config::OPTION_S3_PATH, $path); ?>
+        <p class="explanation"><?php echo __('Path to item folders'); ?></p>
+        <?php echo $view->formText(S3Config::OPTION_S3_PATH_ITEMS, $pathItems); ?>
+    </div>
+</div>
+
+<div class="field">
+    <div class="two columns alpha">
+        <label><?php echo CONFIG_LABEL_S3_PATH_ACCESSIONS; ?></label>
+    </div>
+    <div class="inputs five columns omega">
+        <p class="explanation"><?php echo __('Path to accession folders'); ?></p>
+        <?php echo $view->formText(S3Config::OPTION_S3_PATH_ACCESSIONS, $pathAccessions); ?>
     </div>
 </div>
 
