@@ -261,6 +261,8 @@ class AvantS3
         $filesAttachedToItem = $this->item->getFiles();
         $fileNames = array();
 
+        $s3ObjectKeys = array();
+
         try
         {
             foreach ($objects as $object)
@@ -273,9 +275,19 @@ class AvantS3
                 }
 
                 $fileNames[$fileName] = $this->getS3FileAction($filesAttachedToItem, $fileName);
+
+                $s3ObjectKeys[] = new S3ObjectKey($fileName, $this->getS3FileAction($filesAttachedToItem, $fileName));
             }
 
             asort($fileNames);
+
+            usort($s3ObjectKeys, function(S3ObjectKey $a, S3ObjectKey $b)
+            {
+                $left = "$a->action $a->fileName";
+                $righ = "$b->action $b->fileName";
+                $result = $left <=> $righ;
+                return $result;
+            });
         }
         catch (Aws\S3\Exception\S3Exception $e)
         {
