@@ -117,9 +117,12 @@ class AvantS3
 
         $bucketName = $this->getS3BucketName();
 
-        foreach ($s3FileNames as $fileName)
+        foreach ($s3FileNames as $index => $fileName)
         {
-            $saveFilePathName = $this->stagingFoldePath . '/' . $fileName;
+            // Create a Windows file name from the S3 resource name by replacing forward slashes with double underscores.
+            $stagingFolderFileName = str_replace("/", "__", $fileName);
+
+            $saveFilePathName = $this->stagingFoldePath . '/' . $stagingFolderFileName;
             $key = "$folderName/$fileName";
 
             $this->s3Client->getObject(array(
@@ -127,8 +130,12 @@ class AvantS3
                 'Key'    => $key,
                 'SaveAs' => $saveFilePathName
             ));
+
+            // Replace the S3 resource name in the file names array with the Windows file name.
+            $s3FileNames[$index] = $stagingFolderFileName;
         }
 
+        // Look over the Windows file names to create a list of absolute file paths.
         foreach ($s3FileNames as $fileName)
         {
             $filePath = $this->getAbsoluteFilePathName($fileName);
@@ -213,34 +220,6 @@ class AvantS3
         return null;
     }
 
-    protected function getFilesAttachedToItem(Iterator $objects, string $prefix): array
-    {
-        $filesAttachedToItem = $this->item->getFiles();
-        $fileNames = array();
-
-        try
-        {
-            foreach ($objects as $object)
-            {
-                $filePathName = $object['Key'];
-                $fileName = substr($filePathName, strlen($prefix) + 1);
-                if (empty($fileName))
-                {
-                    continue;
-                }
-
-                $fileNames[$fileName] = $this->getS3FileAction($filesAttachedToItem, $fileName);
-            }
-
-            ksort($fileNames);
-        }
-        catch (Aws\S3\Exception\S3Exception $e)
-        {
-            $fileNames['Unable to access AWS S3 Server'] = self::S3_ERROR;
-        }
-        return $fileNames;
-    }
-
     public function getItemParentFolderName($item)
     {
         $identifier = ItemMetadata::getItemIdentifier($item);
@@ -252,44 +231,6 @@ class AvantS3
     protected function getS3BucketName()
     {
         return S3Config::getOptionValueForBucket();
-    }
-
-    public function getS3FileNamesForAccession()
-    {
-        $bucketName = $this->getS3BucketName();
-
-        $accessionNumberElementId = S3Config::getElementIdForAccessionElement();
-        $accessionNumber = ItemMetadata::getElementTextFromElementId($this->item, $accessionNumberElementId);
-        if ($accessionNumber == "")
-            return [];
-
-        $prefix = "Accessions/$accessionNumber";
-
-        $objects = $this->s3Client->getIterator('ListObjects', array(
-            "Bucket" => $bucketName,
-            "Prefix" => $prefix //must have the trailing forward slash "/"
-        ));
-
-        $fileNames = $this->getFilesAttachedToItem($objects, $prefix);
-
-        return $fileNames;
-    }
-
-    public function getS3FileNamesForItem()
-    {
-        $parentFolderName = $this->getItemParentFolderName($this->item);
-
-        $bucketName = $this->getS3BucketName();
-        $prefix = "Database/$parentFolderName";
-
-        $objects = $this->s3Client->getIterator('ListObjects', array(
-            "Bucket" => $bucketName,
-            "Prefix" => $prefix //must have the trailing forward slash "/"
-        ));
-
-        $fileNames = $this->getFilesAttachedToItem($objects, $prefix);
-
-        return $fileNames;
     }
 
     protected function getS3FileAction($filesAttachedToItem, $fileName)
@@ -312,12 +253,73 @@ class AvantS3
             $action = self::S3_INELIGIBLE;
         }
 
-        if (strpos($fileName, '/') !== false)
-        {
-            $action = self::S3_FOLDER;
-        }
-
         return $action;
+    }
+
+    protected function getS3FileNames(Iterator $objects, string $prefix): array
+    {
+        $filesAttachedToItem = $this->item->getFiles();
+        $fileNames = array();
+
+        try
+        {
+            foreach ($objects as $object)
+            {
+                $filePathName = $object['Key'];
+                $fileName = substr($filePathName, strlen($prefix) + 1);
+                if (empty($fileName))
+                {
+                    continue;
+                }
+
+                $fileNames[$fileName] = $this->getS3FileAction($filesAttachedToItem, $fileName);
+            }
+
+            asort($fileNames);
+        }
+        catch (Aws\S3\Exception\S3Exception $e)
+        {
+            $fileNames['Unable to access AWS S3 Server'] = self::S3_ERROR;
+        }
+        return $fileNames;
+    }
+
+    public function getS3FileNamesForAccession()
+    {
+        $bucketName = $this->getS3BucketName();
+
+        $accessionNumberElementId = S3Config::getElementIdForAccessionElement();
+        $accessionNumber = ItemMetadata::getElementTextFromElementId($this->item, $accessionNumberElementId);
+        if ($accessionNumber == "")
+            return [];
+
+        $prefix = "Accessions/$accessionNumber";
+
+        $objects = $this->s3Client->getIterator('ListObjects', array(
+            "Bucket" => $bucketName,
+            "Prefix" => $prefix //must have the trailing forward slash "/"
+        ));
+
+        $fileNames = $this->getS3FileNames($objects, $prefix);
+
+        return $fileNames;
+    }
+
+    public function getS3FileNamesForItem()
+    {
+        $parentFolderName = $this->getItemParentFolderName($this->item);
+
+        $bucketName = $this->getS3BucketName();
+        $prefix = "Database/$parentFolderName";
+
+        $objects = $this->s3Client->getIterator('ListObjects', array(
+            "Bucket" => $bucketName,
+            "Prefix" => $prefix //must have the trailing forward slash "/"
+        ));
+
+        $fileNames = $this->getS3FileNames($objects, $prefix);
+
+        return $fileNames;
     }
 
     protected function getStagingFolderPath()

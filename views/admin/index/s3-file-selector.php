@@ -88,7 +88,7 @@ else
             else
             {
                 $class = $action == AvantS3::S3_INELIGIBLE ? 's3-ineligible' : 's3-error';
-                $actionText = $action == AvantS3::S3_INELIGIBLE ? __('Cannot add this file type') : '';
+                $actionText = $action == AvantS3::S3_INELIGIBLE ? __('Cannot add') : '';
             }
         }
 
