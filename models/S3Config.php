@@ -7,6 +7,7 @@ define('CONFIG_LABEL_S3_PATH_ITEMS', __('Path'));
 define('CONFIG_LABEL_S3_PATH_ACCESSIONS', __('Accessions'));
 define('CONFIG_LABEL_S3_REGION', __('Region'));
 define('CONFIG_LABEL_S3_SECRET', __('Secret'));
+define('CONFIG_LABEL_S3_ACCESSION_ELEMENT', __('Accession Element'));
 
 class S3Config extends ConfigOptions
 {
@@ -17,6 +18,25 @@ class S3Config extends ConfigOptions
     const OPTION_S3_PATH_ACCESSIONS = 'avants3_accessions';
     const OPTION_S3_REGION = 'avants3_region';
     const OPTION_S3_SECRET = 'avants3_secret';
+    const OPTION_S3_ACCESSION_ELEMENT = 'avants3_accession_element';
+
+    public static function getElementIdForAccessionElement()
+    {
+        return get_option(self::OPTION_S3_ACCESSION_ELEMENT);
+    }
+
+    public static function getOptionTextForAccessionElement()
+    {
+        if (self::configurationErrorsDetected())
+        {
+            $text = isset($_POST[self::OPTION_S3_ACCESSION_ELEMENT]) ? $_POST[self::OPTION_S3_ACCESSION_ELEMENT] : "";
+        }
+        else
+        {
+            $text = ItemMetadata::getElementNameFromId(self::getElementIdForAccessionElement());
+        }
+        return $text;
+    }
 
     public static function getOptionValueForBucket()
     {
@@ -62,6 +82,7 @@ class S3Config extends ConfigOptions
         self::saveOptionDataForPathItems();
         self::saveOptionDataForRegion();
         self::saveOptionDataForSecret();
+        self::saveOptionDataForAccessionElement();
     }
 
     public static function saveOptionDataForBucket()
@@ -97,5 +118,17 @@ class S3Config extends ConfigOptions
     public static function saveOptionDataForSecret()
     {
         self::saveOptionText(self::OPTION_S3_SECRET, CONFIG_LABEL_S3_SECRET);
+    }
+
+    public static function saveOptionDataForAccessionElement()
+    {
+        $accessionElementName = $_POST[self::OPTION_S3_ACCESSION_ELEMENT];
+        $elementId = ItemMetadata::getElementIdForElementName($accessionElementName);
+        if ($elementId == 0)
+        {
+            throw new Omeka_Validate_Exception(CONFIG_LABEL_IDENTIFIER . ': ' . __('"%s" is not an element.', $accessionElementName));
+        }
+
+        set_option(self::OPTION_S3_ACCESSION_ELEMENT, $elementId);
     }
 }

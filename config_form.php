@@ -8,6 +8,7 @@ $pathAccessions = S3Config::getOptionValueForPathAccessions();
 $pathItems = S3Config::getOptionValueForPathItems();
 $region = S3Config::getOptionValueForRegion();
 $secret = S3Config::getOptionValueForSecret();
+$accessionElement = S3Config::getOptionTextForAccessionElement();
 
 ?>
 
@@ -87,6 +88,16 @@ $secret = S3Config::getOptionValueForSecret();
     <div class="inputs five columns omega">
         <p class="explanation"><?php echo __('AWS Secret Access Key'); ?></p>
         <?php echo $view->formText(S3Config::OPTION_S3_SECRET, $secret); ?>
+    </div>
+</div>
+
+<div class="field">
+    <div class="two columns alpha">
+        <label><?php echo CONFIG_LABEL_S3_ACCESSION_ELEMENT; ?></label>
+    </div>
+    <div class="inputs five columns omega">
+        <p class="explanation"><?php echo __('Accession # Element'); ?></p>
+        <?php echo $view->formText(S3Config::OPTION_S3_ACCESSION_ELEMENT, $accessionElement); ?>
     </div>
 </div>
 

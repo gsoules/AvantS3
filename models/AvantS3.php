@@ -258,7 +258,7 @@ class AvantS3
     {
         $bucketName = $this->getS3BucketName();
 
-        $accessionNumberElementId = ItemMetadata::getElementIdForElementName('Accession #');
+        $accessionNumberElementId = S3Config::getElementIdForAccessionElement();
         $accessionNumber = ItemMetadata::getElementTextFromElementId($this->item, $accessionNumberElementId);
         if ($accessionNumber == "")
             return [];

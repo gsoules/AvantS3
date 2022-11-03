@@ -50,7 +50,7 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
                 $s3FileNames = $post['s3-accession-files'];
                 if (!empty($s3FileNames))
                 {
-                    $accessionNumberElementId = ItemMetadata::getElementIdForElementName('Accession #');
+                    $accessionNumberElementId = S3Config::getElementIdForAccessionElement();
                     $accessionNumber = ItemMetadata::getElementTextFromElementId($item, $accessionNumberElementId);
                     if ($accessionNumber)
                         $folderName = "Accessions/$accessionNumber";
