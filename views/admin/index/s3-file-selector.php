@@ -1,6 +1,17 @@
 <?php
 $avantS3 = new AvantS3($item);
+
+// Determine if files for an item were posted.
+$postId = "s3-item-files";
 $fileNames = $avantS3->getS3FileNamesForItem();
+
+// When there are no item files, determine if files for an accession were posted.
+if (!$fileNames)
+{
+    $fileNames = $avantS3->getS3FileNamesForAccession();
+    $postId = "s3-accession-files";
+}
+
 if (!$fileNames)
     {
         echo '<p><strong>' . __('There are no S3 files for this item.') . '</strong></p>';
@@ -54,7 +65,7 @@ else
 
         if ($action == AvantS3::S3_NEW || $action == AvantS3::S3_EXISTING)
         {
-            $tableHtml .= '<td><input type="checkbox" name="s3-files[]" value="' . html_escape($fileName) . '"/></td>';
+            $tableHtml .= '<td><input type="checkbox" name="' . $postId . '[]" value="' . html_escape($fileName) . '"/></td>';
             if ($action == AvantS3::S3_EXISTING)
             {
                 $class = 's3-existing';

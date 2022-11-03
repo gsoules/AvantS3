@@ -27,14 +27,39 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
         $post = $args['post'];
 
         $failed = false;
-    
-        if (($post && isset($post['s3-files'])))
+
+        if ($post)
         {
-            $s3FileNames = $post['s3-files'];
-            if (!empty($s3FileNames))
+            $avantS3 = new AvantS3($item);
+            $s3FileNames = "";
+            $folderName = "";
+
+            if ((isset($post['s3-item-files'])))
             {
-                $avantS3 = new AvantS3($item);
-                $downloaded = $avantS3->downloadS3FilesToStagingFolder($s3FileNames);
+                // Construct the folder name for files that were posted for an item.
+                $s3FileNames = $post['s3-item-files'];
+                if (!empty($s3FileNames))
+                {
+                    $parentFolderName = $avantS3->getItemParentFolderName($item);
+                    $folderName = "Database/$parentFolderName";
+                }
+            }
+            else if ((isset($post['s3-accession-files'])))
+            {
+                // Construct the folder name for files that were posted for an accession.
+                $s3FileNames = $post['s3-accession-files'];
+                if (!empty($s3FileNames))
+                {
+                    $accessionNumberElementId = ItemMetadata::getElementIdForElementName('Accession #');
+                    $accessionNumber = ItemMetadata::getElementTextFromElementId($item, $accessionNumberElementId);
+                    if ($accessionNumber)
+                        $folderName = "Accessions/$accessionNumber";
+                }
+            }
+
+            if (!empty($folderName) && !empty($s3FileNames))
+            {
+                $downloaded = $avantS3->downloadS3FilesToStagingFolder($s3FileNames, $folderName);
                 if ($downloaded)
                 {
                     $avantS3->deleteExistingFilesAttachedToItem();
