@@ -1,6 +1,6 @@
 <?php
 
-class S3ObjectKey
+class S3Name
 {
     public $keyName;
     public $fileName;

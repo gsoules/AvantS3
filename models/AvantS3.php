@@ -108,7 +108,7 @@ class AvantS3
         }
     }
 
-    public function downloadS3FilesToStagingFolder($s3FileNames, $folderName)
+    public function downloadS3FilesToStagingFolder($s3KeyNames, $folderName)
     {
         if (!$this->canAccessStagingFolder())
         {
@@ -117,42 +117,45 @@ class AvantS3
 
         $bucketName = $this->getS3BucketName();
 
-        foreach ($s3FileNames as $index => $fileName)
+        $s3Names = array();
+        foreach ($s3KeyNames as $s3KeyName)
+        {
+            $s3Names[] = new S3Name($s3KeyName, 0);
+        }
+
+        foreach ($s3Names as $s3Name)
         {
             // Create a Windows file name from the S3 resource name by replacing forward slashes with double underscores.
-            $stagingFolderFileName = str_replace("/", "__", $fileName);
+            $stagingFolderFileName = $s3Name->fileName;
 
             $saveFilePathName = $this->stagingFoldePath . '/' . $stagingFolderFileName;
-            $key = "$folderName/$fileName";
+            $key = "$folderName/$s3Name->keyName";
 
             $this->s3Client->getObject(array(
                 'Bucket' => $bucketName,
                 'Key'    => $key,
                 'SaveAs' => $saveFilePathName
             ));
-
-            // Replace the S3 resource name in the file names array with the Windows file name.
-            $s3FileNames[$index] = $stagingFolderFileName;
         }
 
         // Look over the Windows file names to create a list of absolute file paths.
-        foreach ($s3FileNames as $fileName)
+        foreach ($s3Names as $s3Name)
         {
-            $filePath = $this->getAbsoluteFilePathName($fileName);
+            $filePath = $this->getAbsoluteFilePathName($s3Name->fileName);
             $this->filePathList[] = $filePath;
-            $this->fileNameList[] = $fileName;
+            $this->fileNameList[] = $s3Name->fileName;
         }
 
-        $downSized = $this->downSizeLargeImages($s3FileNames);
+        $downSized = $this->downSizeLargeImages($s3KeyNames);
         return $downSized;
     }
 
-    protected function downSizeLargeImages($s3FileNames)
+    protected function downSizeLargeImages($s3Names)
     {
-        foreach ($s3FileNames as $fileName)
+        foreach ($s3Names as $s3Name)
         {
-            $filePath = $this->getAbsoluteFilePathName($fileName);
-            $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            $filePath = $this->getAbsoluteFilePathName($s3Name->fileName);
+            $ext = strtolower(pathinfo($s3Name->fileName, PATHINFO_EXTENSION));
             $imageExt = array('jpg', 'jpeg');
 
             if (in_array($ext, $imageExt))
@@ -256,12 +259,11 @@ class AvantS3
         return $action;
     }
 
-    protected function getS3FileNames(Iterator $objects, string $prefix): array
+    protected function getS3Names(Iterator $objects, string $prefix): array
     {
         $filesAttachedToItem = $this->item->getFiles();
-        $fileNames = array();
 
-        $s3ObjectKeys = array();
+        $s3Names = array();
 
         try
         {
@@ -270,18 +272,11 @@ class AvantS3
                 $filePathName = $object['Key'];
                 $fileName = substr($filePathName, strlen($prefix) + 1);
                 if (empty($fileName))
-                {
                     continue;
-                }
-
-                $fileNames[$fileName] = $this->getS3FileAction($filesAttachedToItem, $fileName);
-
-                $s3ObjectKeys[] = new S3ObjectKey($fileName, $this->getS3FileAction($filesAttachedToItem, $fileName));
+                $s3Names[] = new S3Name($fileName, $this->getS3FileAction($filesAttachedToItem, $fileName));
             }
 
-            asort($fileNames);
-
-            usort($s3ObjectKeys, function(S3ObjectKey $a, S3ObjectKey $b)
+            usort($s3Names, function(S3Name $a, S3Name $b)
             {
                 $left = "$a->action $a->fileName";
                 $righ = "$b->action $b->fileName";
@@ -291,12 +286,13 @@ class AvantS3
         }
         catch (Aws\S3\Exception\S3Exception $e)
         {
-            $fileNames['Unable to access AWS S3 Server'] = self::S3_ERROR;
+            $s3Names[] = new S3Name('Unable to access AWS S3 Server', self::S3_ERROR);
         }
-        return $fileNames;
+
+        return $s3Names;
     }
 
-    public function getS3FileNamesForAccession()
+    public function getS3NamesForAccession()
     {
         $bucketName = $this->getS3BucketName();
 
@@ -312,12 +308,10 @@ class AvantS3
             "Prefix" => $prefix //must have the trailing forward slash "/"
         ));
 
-        $fileNames = $this->getS3FileNames($objects, $prefix);
-
-        return $fileNames;
+        return $this->getS3Names($objects, $prefix);
     }
 
-    public function getS3FileNamesForItem()
+    public function getS3NamesForItem()
     {
         $parentFolderName = $this->getItemParentFolderName($this->item);
 
@@ -329,9 +323,7 @@ class AvantS3
             "Prefix" => $prefix //must have the trailing forward slash "/"
         ));
 
-        $fileNames = $this->getS3FileNames($objects, $prefix);
-
-        return $fileNames;
+        return $this->getS3Names($objects, $prefix);
     }
 
     protected function getStagingFolderPath()
