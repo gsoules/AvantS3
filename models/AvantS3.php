@@ -278,9 +278,10 @@ class AvantS3
 
             usort($s3Names, function(S3Name $a, S3Name $b)
             {
+                // Prefix the action number to the file name so that files will sort first by action, then by name.
                 $left = "$a->action $a->fileName";
-                $righ = "$b->action $b->fileName";
-                $result = $left <=> $righ;
+                $right = "$b->action $b->fileName";
+                $result = strtolower($left) <=> strtolower($right);
                 return $result;
             });
         }
