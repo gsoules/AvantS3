@@ -302,7 +302,7 @@ class AvantS3
         if ($accessionNumber == "")
             return [];
 
-        $prefix = "Accessions/$accessionNumber";
+        $prefix = "Accessions/$accessionNumber/";
 
         $objects = $this->s3Client->getIterator('ListObjects', array(
             "Bucket" => $bucketName,
