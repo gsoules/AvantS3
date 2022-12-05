@@ -270,7 +270,7 @@ class AvantS3
             foreach ($objects as $object)
             {
                 $filePathName = $object['Key'];
-                $fileName = substr($filePathName, strlen($prefix) + 1);
+                $fileName = substr($filePathName, strlen($prefix));
                 if (empty($fileName))
                     continue;
                 $s3Names[] = new S3Name($fileName, $this->getS3FileAction($filesAttachedToItem, $fileName));
