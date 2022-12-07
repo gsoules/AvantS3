@@ -259,7 +259,7 @@ class AvantS3
         return $action;
     }
 
-    protected function getS3Names(Iterator $objects, string $prefix): array
+    protected function getS3Names(Iterator $objects, $prefixLen): array
     {
         $filesAttachedToItem = $this->item->getFiles();
 
@@ -270,7 +270,7 @@ class AvantS3
             foreach ($objects as $object)
             {
                 $filePathName = $object['Key'];
-                $fileName = substr($filePathName, strlen($prefix));
+                $fileName = substr($filePathName, $prefixLen);
                 if (empty($fileName))
                     continue;
                 $s3Names[] = new S3Name($fileName, $this->getS3FileAction($filesAttachedToItem, $fileName));
@@ -303,13 +303,14 @@ class AvantS3
             return [];
 
         $prefix = "Accessions/$accessionNumber/";
+        $prefixLen = strlen($prefix);
 
         $objects = $this->s3Client->getIterator('ListObjects', array(
             "Bucket" => $bucketName,
-            "Prefix" => $prefix //must have the trailing forward slash "/"
+            "Prefix" => $prefix
         ));
 
-        return $this->getS3Names($objects, $prefix);
+        return $this->getS3Names($objects, $prefixLen);
     }
 
     public function getS3NamesForItem()
@@ -319,12 +320,15 @@ class AvantS3
         $bucketName = $this->getS3BucketName();
         $prefix = "Database/$parentFolderName";
 
+        // Add 1 to the prefix len to account for the item's grouping folder '/' e.g. Database/16000/16630/filename.jpg
+        $prefixLen = strlen($prefix) + 1;
+
         $objects = $this->s3Client->getIterator('ListObjects', array(
             "Bucket" => $bucketName,
-            "Prefix" => $prefix //must have the trailing forward slash "/"
+            "Prefix" => $prefix
         ));
 
-        return $this->getS3Names($objects, $prefix);
+        return $this->getS3Names($objects, $prefixLen);
     }
 
     protected function getStagingFolderPath()
