@@ -53,7 +53,13 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
                     $accessionNumberElementId = S3Config::getElementIdForAccessionElement();
                     $accessionNumber = ItemMetadata::getElementTextFromElementId($item, $accessionNumberElementId);
                     if ($accessionNumber)
+                    {
+                        // Handle the case when the accession is a sub_accession e.g. 2026_02 which will be in S3 Accessions/2026/2026_02".
+                        $parts = explode('_', $accessionNumber);
+                        if (count($parts) == 2)
+                            $accessionNumber = $parts[0] . "/" . $accessionNumber;
                         $folderName = "Accessions/$accessionNumber";
+                    }
                 }
             }
 

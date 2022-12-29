@@ -302,6 +302,11 @@ class AvantS3
         if ($accessionNumber == "")
             return [];
 
+        // Handle the case when the accession is a sub_accession e.g. 2026_02 which will be in S3 Accessions/2026/2026_02".
+        $parts = explode('_', $accessionNumber);
+        if (count($parts) == 2)
+            $accessionNumber = $parts[0] . "/" . $accessionNumber;
+
         $prefix = "Accessions/$accessionNumber/";
         $prefixLen = strlen($prefix);
 
