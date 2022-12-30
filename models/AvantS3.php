@@ -154,8 +154,8 @@ class AvantS3
     {
         foreach ($s3Names as $s3Name)
         {
-            $filePath = $this->getAbsoluteFilePathName($s3Name->fileName);
-            $ext = strtolower(pathinfo($s3Name->fileName, PATHINFO_EXTENSION));
+            $filePath = $this->getAbsoluteFilePathName($s3Name);
+            $ext = strtolower(pathinfo($s3Name, PATHINFO_EXTENSION));
             $imageExt = array('jpg', 'jpeg');
 
             if (in_array($ext, $imageExt))
