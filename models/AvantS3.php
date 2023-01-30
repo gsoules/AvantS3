@@ -146,7 +146,7 @@ class AvantS3
             $this->fileNameList[] = $s3Name->fileName;
         }
 
-        $downSized = $this->downSizeLargeImages($s3KeyNames);
+        $downSized = $this->downSizeLargeImages($this->fileNameList);
         return $downSized;
     }
 
