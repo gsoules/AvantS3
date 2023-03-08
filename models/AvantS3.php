@@ -125,7 +125,6 @@ class AvantS3
 
         foreach ($s3Names as $s3Name)
         {
-            // Create a Windows file name from the S3 resource name by replacing forward slashes with double underscores.
             $stagingFolderFileName = $s3Name->fileName;
 
             $saveFilePathName = $this->stagingFoldePath . '/' . $stagingFolderFileName;
