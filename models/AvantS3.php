@@ -87,6 +87,13 @@ class AvantS3
         return is_readable($path) && is_writable($path);
     }
 
+    protected function changeTifExtToJpg($path)
+    {
+        $path = str_replace('.tiff', '.jpg', $path);
+        $path = str_replace('.tif', '.jpg', $path);
+        return $path;
+    }
+
     public function deleteExistingFilesAttachedToItem()
     {
         // Get all the files attached to this item.
@@ -138,11 +145,11 @@ class AvantS3
         }
 
         // Look over the Windows file names to create a list of absolute file paths.
+        // Change the extension for any paths containing files that were converted from tif to jpg.
         foreach ($s3Names as $s3Name)
         {
             $filePath = $this->getAbsoluteFilePathName($s3Name->fileName);
-            $filePath = str_replace('.tiff', '.jpg', $filePath);
-            $filePath = str_replace('.tif', '.jpg', $filePath);
+            $filePath = $this->changeTifExtToJpg($filePath);
             $this->filePathList[] = $filePath;
             $this->fileNameList[] = $s3Name->fileName;
         }
@@ -151,11 +158,11 @@ class AvantS3
 
         if ($downSized)
         {
+            // Change the extension for any files that were converted from tif to jpg.
             foreach ($this->fileNameList as $index => $fileName)
             {
-                 $fileName = str_replace('.tiff', '.jpg', $fileName);
-                 $fileName = str_replace('.tif', '.jpg', $fileName);
-                 $this->fileNameList[$index] = $fileName;
+                $fileName = $this->changeTifExtToJpg($fileName);
+                $this->fileNameList[$index] = $fileName;
             }
         }
 
@@ -187,14 +194,13 @@ class AvantS3
 
                 if ($resized)
                 {
+                    // Delete the original file.
                     unlink($filePath);
 
-                    if ($isTif)
-                    {
-                        $filePath = str_replace('.tiff', '.jpg', $filePath);
-                        $filePath = str_replace('.tif', '.jpg', $filePath);
-                    }
+                    // Change the extension for any files that were converted from tif to jpg.
+                    $filePath = $this->changeTifExtToJpg($filePath);
 
+                    // Rename the resized file to have the original file's name.
                     rename($resizedFilePath, $filePath);
                 }
                 else
@@ -288,7 +294,7 @@ class AvantS3
         }
 
         $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        $validExt = array('jpg', 'jpeg', 'tif', 'pdf', 'txt', 'mp3');
+        $validExt = array('jpg', 'jpeg', 'tif', 'tiff', 'pdf', 'txt', 'mp3');
         if (!in_array($ext, $validExt))
         {
             $action = self::S3_INELIGIBLE;
@@ -476,13 +482,18 @@ class AvantS3
                 $newHeight = $origHeight;
             }
 
+            // Setting the compression quality to be fairly high (100 is best quality) still results
+            // in small files, especially in comparison to the hugh original tif files.
             $imagick->setCompression(Imagick::COMPRESSION_JPEG);
-            $imagick->setImageCompressionQuality(60);
+            $imagick->setImageCompressionQuality(90);
             $imagick->setImageFormat('jpeg');
+
+            // Resize the image and write it to a temporary files.
             $imagick->resizeImage($newWidth, $newHeight, imagick::FILTER_LANCZOS, 1);
             $imagick->writeImage($targetImage);
+
+            // Free up the imagick object's resources.
             $imagick->clear();
-            $imagick->destroy();
         }
         catch (ImagickException $e)
         {
