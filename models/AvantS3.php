@@ -155,7 +155,7 @@ class AvantS3
         {
             $filePath = $this->getAbsoluteFilePathName($s3Name);
             $ext = strtolower(pathinfo($s3Name, PATHINFO_EXTENSION));
-            $imageExt = array('jpg', 'jpeg');
+            $imageExt = array('jpg', 'jpeg', 'tif');
 
             if (in_array($ext, $imageExt))
             {
@@ -249,7 +249,7 @@ class AvantS3
         }
 
         $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        $validExt = array('jpg', 'jpeg', 'pdf', 'txt', 'mp3');
+        $validExt = array('jpg', 'jpeg', 'tif', 'pdf', 'txt', 'mp3');
         if (!in_array($ext, $validExt))
         {
             $action = self::S3_INELIGIBLE;
@@ -364,8 +364,29 @@ class AvantS3
 
     function resizeImage($sourceImage, $targetImage, $maxEdgeLength, $quality = 80)
     {
-       // Derived from: https://gist.github.com/janzikan/2994977
+        try
+        {
+            $imagick = new Imagick($sourceImage);
+            $sourceImageJpg = str_replace('tif', 'jpg', $sourceImage);
+            $w = $imagick->getImageWidth();
+            $h = $imagick->getImageHeight();
+            $w = $w / 2;
+            $h = $h / 2;
+            $imagick->setImageColorspace(255);
+            $imagick->setCompression(Imagick::COMPRESSION_JPEG);
+            $imagick->setCompressionQuality(60);
+            $imagick->setImageFormat('jpeg');
+            $imagick->resizeImage($w, $h, imagick::FILTER_LANCZOS, 1);
+            $imagick->writeImage($sourceImageJpg);
+            $imagick->clear();
+            $imagick->destroy();
+        }
+        catch (ImagickException $e) {
+            _log("Imagick failed to open the file. Details:\n$e", Zend_Log::ERR);
+            return false;
+        }
 
+        // Derived from: https://gist.github.com/janzikan/2994977
         if ($this->fileCanBeResized($sourceImage))
         {
             $image = @imagecreatefromjpeg($sourceImage);
