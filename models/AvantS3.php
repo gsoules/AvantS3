@@ -141,11 +141,24 @@ class AvantS3
         foreach ($s3Names as $s3Name)
         {
             $filePath = $this->getAbsoluteFilePathName($s3Name->fileName);
+            $filePath = str_replace('.tiff', '.jpg', $filePath);
+            $filePath = str_replace('.tif', '.jpg', $filePath);
             $this->filePathList[] = $filePath;
             $this->fileNameList[] = $s3Name->fileName;
         }
 
         $downSized = $this->downSizeLargeImages($this->fileNameList);
+
+        if ($downSized)
+        {
+            foreach ($this->fileNameList as $index => $fileName)
+            {
+                 $fileName = str_replace('.tiff', '.jpg', $fileName);
+                 $fileName = str_replace('.tif', '.jpg', $fileName);
+                 $this->fileNameList[$index] = $fileName;
+            }
+        }
+
         return $downSized;
     }
 
@@ -155,17 +168,33 @@ class AvantS3
         {
             $filePath = $this->getAbsoluteFilePathName($s3Name);
             $ext = strtolower(pathinfo($s3Name, PATHINFO_EXTENSION));
-            $imageExt = array('jpg', 'jpeg', 'tif');
+            $imageExt = array('jpg', 'jpeg', 'tif', 'tiff');
 
             if (in_array($ext, $imageExt))
             {
-                $resizedFilePath = $filePath . '_';
+                $isTif = $ext == 'tif' || $ext == 'tiff';
 
-                $resized = $this->resizeImage($filePath, $resizedFilePath, self::MAX_LONG_EDGE);
+                if ($isTif)
+                {
+                    $resizedFilePath = $filePath . '.jpg';
+                    $resized = $this->resizeImageTif($filePath, $resizedFilePath, self::MAX_LONG_EDGE);
+                }
+                else
+                {
+                    $resizedFilePath = $filePath . '_';
+                    $resized = $this->resizeImageJpg($filePath, $resizedFilePath, self::MAX_LONG_EDGE);
+                }
 
                 if ($resized)
                 {
                     unlink($filePath);
+
+                    if ($isTif)
+                    {
+                        $filePath = str_replace('.tiff', '.jpg', $filePath);
+                        $filePath = str_replace('.tif', '.jpg', $filePath);
+                    }
+
                     rename($resizedFilePath, $filePath);
                 }
                 else
@@ -228,6 +257,16 @@ class AvantS3
         $id = intval($identifier);
         $parentFolderName = $id - ($id % 1000);
         return "$parentFolderName/$identifier";
+    }
+
+    public function getRatio($maxEdgeLength, int $origWidth, int $origHeight): mixed
+    {
+        $widthRatio = $maxEdgeLength / $origWidth;
+        $heightRatio = $maxEdgeLength / $origHeight;
+
+        // Ratio used for calculating new image dimensions.
+        $ratio = min($widthRatio, $heightRatio);
+        return $ratio;
     }
 
     protected function getS3BucketName()
@@ -362,30 +401,8 @@ class AvantS3
         }
     }
 
-    function resizeImage($sourceImage, $targetImage, $maxEdgeLength, $quality = 80)
+    function resizeImageJpg($sourceImage, $targetImage, $maxEdgeLength, $quality = 80)
     {
-        try
-        {
-            $imagick = new Imagick($sourceImage);
-            $sourceImageJpg = str_replace('tif', 'jpg', $sourceImage);
-            $w = $imagick->getImageWidth();
-            $h = $imagick->getImageHeight();
-            $w = $w / 2;
-            $h = $h / 2;
-            $imagick->setImageColorspace(255);
-            $imagick->setCompression(Imagick::COMPRESSION_JPEG);
-            $imagick->setCompressionQuality(60);
-            $imagick->setImageFormat('jpeg');
-            $imagick->resizeImage($w, $h, imagick::FILTER_LANCZOS, 1);
-            $imagick->writeImage($sourceImageJpg);
-            $imagick->clear();
-            $imagick->destroy();
-        }
-        catch (ImagickException $e) {
-            _log("Imagick failed to open the file. Details:\n$e", Zend_Log::ERR);
-            return false;
-        }
-
         // Derived from: https://gist.github.com/janzikan/2994977
         if ($this->fileCanBeResized($sourceImage))
         {
@@ -406,12 +423,7 @@ class AvantS3
 
         // Get dimensions of source image.
         list($origWidth, $origHeight) = getimagesize($sourceImage);
-        // Calculate ratio of desired maximum sizes and original sizes.
-        $widthRatio = $maxEdgeLength / $origWidth;
-        $heightRatio = $maxEdgeLength / $origHeight;
-
-        // Ratio used for calculating new image dimensions.
-        $ratio = min($widthRatio, $heightRatio);
+        $ratio = $this->getRatio($maxEdgeLength, $origWidth, $origHeight);
 
         if ($ratio < 1.0)
         {
@@ -427,8 +439,6 @@ class AvantS3
             // Free up the memory.
             imagedestroy($newImage);
             imagedestroy($image);
-
-            return true;
         }
         else
         {
@@ -437,7 +447,48 @@ class AvantS3
 
             // Rename the source to the target as though the resize operation had occurred successfully.
             rename($sourceImage, $targetImage);
-            return true;
         }
+
+        return true;
+    }
+
+    function resizeImageTif($sourceImage, $targetImage, $maxEdgeLength, $quality = 80)
+    {
+        try
+        {
+            $imagick = new Imagick($sourceImage);
+
+            // Get dimensions of source image.
+            $origWidth = $imagick->getImageWidth();
+            $origHeight = $imagick->getImageHeight();
+            $ratio = $this->getRatio($maxEdgeLength, $origWidth, $origHeight);
+
+            if ($ratio < 1.0)
+            {
+                // The image needs to be downsized. Calculate new image dimensions.
+                $newWidth  = (int)$origWidth  * $ratio;
+                $newHeight = (int)$origHeight * $ratio;
+            }
+            else
+            {
+                // The image is already small enough.
+                $newWidth = $origWidth;
+                $newHeight = $origHeight;
+            }
+
+            $imagick->setCompression(Imagick::COMPRESSION_JPEG);
+            $imagick->setImageCompressionQuality(60);
+            $imagick->setImageFormat('jpeg');
+            $imagick->resizeImage($newWidth, $newHeight, imagick::FILTER_LANCZOS, 1);
+            $imagick->writeImage($targetImage);
+            $imagick->clear();
+            $imagick->destroy();
+        }
+        catch (ImagickException $e)
+        {
+            _log("Imagick failed to open $sourceImage. Details:\n$e", Zend_Log::ERR);
+            return false;
+        }
+        return true;
     }
 }
