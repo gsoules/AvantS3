@@ -89,8 +89,8 @@ class AvantS3
 
     protected function changeTifExtToJpg($path)
     {
-        $path = str_replace('.tiff', '.jpg', $path);
-        $path = str_replace('.tif', '.jpg', $path);
+        $path = str_ireplace('.tiff', '.jpg', $path);
+        $path = str_ireplace('.tif', '.jpg', $path);
         return $path;
     }
 
