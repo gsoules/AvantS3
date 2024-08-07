@@ -78,11 +78,14 @@ class AvantS3Plugin extends Omeka_Plugin_AbstractPlugin
             }
         }
 
-        // Invoke the logic that would normally be called by AvantElasticsearch's after_save_item hook. When AvantS3
-        // is installed, that hook does nothing so that this hook can first attach PDF files before AvantElasticsearch
-        // indexes the item and its PDF files.
-        $avantElasticsearch = new AvantElasticsearch();
-        $avantElasticsearch->afterSaveItem($args);
+        if (plugin_is_active('AvantElasticsearch'))
+        {
+            // Invoke the logic that would normally be called by AvantElasticsearch's after_save_item hook. When AvantS3
+            // is installed, that hook does nothing so that this hook can first attach PDF files before AvantElasticsearch
+            // indexes the item and its PDF files.
+            $avantElasticsearch = new AvantElasticsearch();
+            $avantElasticsearch->afterSaveItem($args);
+        }
 
         if ($failed)
         {
